@@ -1,17 +1,12 @@
 FROM node:10
 
-# Install NPM
-RUN npm install -g hexo
+COPY setup /setup
 
-# Initilize the blog
-RUN hexo init /blog
+# Install requirements
+RUN (cd /setup; sh install.sh)
+
+# Set the work directory to blog
 WORKDIR /blog
 
-# Setup some defaults
-ADD setup/_config.yml /setup/_config.yml
-ADD setup/landscape/ /setup/landscape/
-
-# Run the server
-ADD setup/bootstrap.sh /blog/bootstrap.sh
-RUN chmod +x bootstrap.sh
+# Start the server
 CMD ["/bin/bash", "/blog/bootstrap.sh"]
