@@ -1,5 +1,6 @@
 # Used to install rsync for deployments
-apt-get install rsync -y
+apt-get update -y
+apt-get -y install rsync
 
 # Install HEXO
 npm install -g hexo

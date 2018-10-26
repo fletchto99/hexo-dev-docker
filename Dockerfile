@@ -9,4 +9,4 @@ RUN (cd /setup; sh install.sh)
 WORKDIR /blog
 
 # Start the server
-ENTRYPOINT ["/blog/bootstrap.sh"]
+CMD ["/bin/bash", "/blog/bootstrap.sh"]
