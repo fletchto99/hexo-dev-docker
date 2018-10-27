@@ -1,6 +1,6 @@
 # Hexo Dev Blog
 
-This container enables the static blogging platform hexo to be containerized. It allows for custom themes, plugins and configurations. A sample of this running can be seen at [blog-test.fletchto99.com](blog-test.fletchto99.com). This container is mainly intended for development use and rapid prototyping of blog posts, however it should be possible to run this in a production setting as well. The recommended route would be to setup a deployment and use `hexo deploy` via the docker console to send the static files to be served by a CDN or something similar.
+This container enables the static blogging platform hexo to be containerized. It allows for custom themes, plugins and configurations. A sample of this running can be seen at [https://blog-test.fletchto99.com](https://blog-test.fletchto99.com). This container is mainly intended for development use and rapid prototyping of blog posts, however it should be possible to run this in a production setting as well. The recommended route would be to setup a deployment and use `hexo deploy` via the docker console to send the static files to be served by a CDN or something similar.
 
 ## Usage
 
