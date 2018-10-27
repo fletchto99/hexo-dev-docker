@@ -19,7 +19,7 @@ docker create \
 * `-v /config` - Configuration files and generated blog files
 
 _Optional paramaters:_
-* `-e HEXO_PLUGINS` - Any [hexo plugins](https://hexo.io/plugins/index.html) you wish for the blog to have access to
+* `-e HEXO_PLUGINS` - Any [hexo plugins](https://hexo.io/plugins/index.html) you wish the blog to have access to, space seperated. For example `hexo-sliding-spoiler hexo-wordcount hexo-deploy-rsync`
 
 
 ## Setting up the config directory
