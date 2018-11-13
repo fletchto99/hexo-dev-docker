@@ -41,4 +41,4 @@ ln -s /config/public /blog/
 
 # Start the server
 echo "Starting hexo server on port 8080"
-hexo server -p 8080 --debug
+hexo server -p 8080 --debug --draft
