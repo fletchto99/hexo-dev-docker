@@ -6,7 +6,7 @@ COPY setup /setup
 RUN (cd /setup; sh bootstrap.sh)
 
 # Set the work directory to blog
-WORKDIR /blog
+WORKDIR /config
 
 # Start the server
-CMD ["/bin/bash", "/blog/run.sh"]
+CMD ["/bin/bash", "/setup/run.sh"]
