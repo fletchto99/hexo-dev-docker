@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Used to install rsync for deployments
+echo "Installing rsync for deployments"
+apt-get update -y
+apt-get -y install rsync
+
+# Install HEXO
+echo "Installing hexo.."
+npm install -g hexo
+
 # Check to ensure the /config volume is mounted
 if [ ! -d "/config" ]; then
   echo "Please mount a /config directory so you blog persists upon container restarts!"
@@ -20,13 +29,12 @@ if [[ -z "${HEXO_PLUGINS}" ]]; then
   echo "No additional plugins to install!"
 else
   echo "Installing additional plugins \"${HEXO_PLUGINS}\""
-  npm install "${HEXO_PLUGINS}"
+  npm install -C /config ${HEXO_PLUGINS}
 fi
 
 # Start the server
 echo "Starting hexo server on port 8080"
 
 # Start fresh
-cd /config || exit 1
-hexo clean || true
-hexo server -p 8080 --debug --draft
+hexo clean --cwd /config
+hexo server --cwd /config -p 8080 --debug --draft
