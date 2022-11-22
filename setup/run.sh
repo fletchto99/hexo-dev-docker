@@ -35,6 +35,24 @@ fi
 # Start the server
 echo "Starting hexo server on port 8080"
 
+echo "************************************************************"
+echo "************************************************************"
+echo "************************************************************"
+echo ""
+echo "WARNING: If you just see a generic output stating hexo [command] usage"
+echo "that's because this container was updated to be more generic and requires"
+echo "that you set up the blog as 'new'. To do so, point the /config volume to a"
+echo "new EMPTY directory and let it init the blog. Once it's done, you can stop the"
+echo "container and copy over your old blog configs."
+echo ""
+echo "I'm sorry for the trouble. I tried to find a better solution but I don't really"
+echo "actively maintain this container anymore. If you have a better solution please"
+echo "feel free to submit a PR!"
+echo ""
+echo "************************************************************"
+echo "************************************************************"
+echo "************************************************************"
+
 # Start fresh
 hexo clean --cwd /config
 hexo server --cwd /config -p 8080 --debug --draft
