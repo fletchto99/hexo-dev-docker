@@ -1,46 +1,29 @@
-#!/bin/sh
+#!/bin/bash
 
-# Install any required hexo plugins
-if [[ -z "${HEXO_PLUGINS}" ]]; then
-  echo "No additional plugins to install!"
-else
-  echo "Installing additional plugins \"${HEXO_PLUGINS}\""
-  npm install ${HEXO_PLUGINS}
-fi
+# Used to install rsync for deployments
+apt-get update -y
+apt-get -y install rsync
+
+# Install HEXO
+npm install -g hexo
 
 # Check to ensure the /config volume is mounted
 if [ ! -d "/config" ]; then
-  echo "Please mount the _config.yml, source/, themes/ and public/ to the /config directory"
-  exit 1
+    echo "Please mount a /config directory so you blog persists upon container restarts!"
+    echo "If this is your first time setting up the container make sure the /config directory is empty!"
+    exit 1
 fi
 
-# Ensure the required directories exist
-mkdir -p /config/themes
-mkdir -p /config/public
-mkdir -p /config/source
+echo "Linking configs to blog runtime dir..."
+ln -s /config /blog
 
-# Create a sample config
-cp -n /setup/_config.yml /config/_config.yml
-
-# Copy the themes
-if [ -z "$(ls -A /config/themes)" ]; then
-   cp -R /setup/landscape /config/themes/landscape
+if [ -z "$(ls -A /config)" ]; then
+    echo "Blog not yet initialized, setting up the default files..."
+    # Initilize the blog
+    hexo init /blog
+else
+    echo "Blog already initialized, skipping..."
 fi
 
-# Remove some defaults setup by hexo
-rm /blog/_config.yml
-rm -r /blog/source
-rm -r /blog/themes
-rm -r /blog/public
-
-# Link all the things to make hexo work
-ln -s /config/_config.yml /blog/_config.yml
-ln -s /config/source /blog/
-ln -s /config/themes /blog/
-ln -s /config/public /blog/
-
-# Start the server
-echo "Starting hexo server on port 8080"
-# Start fresh
-hexo clean || true
-hexo server -p 8080 --debug --draft
+# Copy bootstrap scrpt
+cp /setup/run.sh /blog/run.sh
