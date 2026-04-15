@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# Used to install rsync for deployments
-echo "Installing rsync for deployments"
-apt-get update -y
-apt-get -y install rsync
-
-# Install HEXO
-echo "Installing hexo.."
-npm install -g hexo
-
 # Check to ensure the /config volume is mounted
 if [ ! -d "/config" ]; then
   echo "Please mount a /config directory so you blog persists upon container restarts!"

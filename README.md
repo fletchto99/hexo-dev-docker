@@ -2,24 +2,28 @@
 
 This container enables the static blogging platform hexo to be containerized. It allows for custom themes, plugins and configurations. A sample of this running can be seen at [https://blog-test.fletchto99.com](https://blog-test.fletchto99.com). This container is mainly intended for development use and rapid prototyping of blog posts, however it should be possible to run this in a production setting as well. The recommended route would be to setup a deployment and use `hexo deploy` via the docker console to send the static files to be served by a CDN or something similar.
 
+## Images
+
+- **GHCR:** `ghcr.io/fletchto99/hexo-dev-docker`
+- **Docker Hub:** `fletchto99/hexo-dev-blog`
+
 ## Usage
 
 ```
 docker create \
   --name=blog \
   -v <path to data>:/config \
-  -e PGID=<gid> -e PUID=<uid>  \
   -e HEXO_PLUGINS=<hexo plugins> \
   -p 8080:8080 \
-  fletchto99/hexo-dev-blog
+  ghcr.io/fletchto99/hexo-dev-docker
 ```
 
 ## Parameters
 * `-p 8080` - The port to run the container on
 * `-v /config` - Configuration files and generated blog files
 
-_Optional paramaters:_
-* `-e HEXO_PLUGINS` - Any [hexo plugins](https://hexo.io/plugins/index.html) you wish the blog to have access to, space seperated. For example `hexo-sliding-spoiler hexo-wordcount hexo-deploy-rsync`
+_Optional parameters:_
+* `-e HEXO_PLUGINS` - Any [hexo plugins](https://hexo.io/plugins/index.html) you wish the blog to have access to, space separated. For example `hexo-sliding-spoiler hexo-wordcount hexo-deploy-rsync`
 
 
 ## Setting up the config directory
