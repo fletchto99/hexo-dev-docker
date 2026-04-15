@@ -9,7 +9,7 @@ fi
 
 if [ -z "$(ls -A /config)" ]; then
   echo "Blog not yet initialized, setting up the default files..."
-  # Initilize the blog
+  # Initialize the blog
   hexo init /config
 else
   echo "Blog already initialized, skipping..."
