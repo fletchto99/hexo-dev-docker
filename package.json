@@ -1,0 +1,8 @@
+{
+  "name": "hexo-dev-docker",
+  "private": true,
+  "description": "Docker image for Hexo development",
+  "dependencies": {
+    "hexo-cli": "4.3.2"
+  }
+}
