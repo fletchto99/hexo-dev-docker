@@ -1,64 +1,91 @@
-# Hexo Dev Blog
+# Hexo Dev Docker
 
-This container enables the static blogging platform hexo to be containerized. It allows for custom themes, plugins and configurations. This container is mainly intended for development use and rapid prototyping of blog posts, however it should be possible to run this in a production setting as well. The recommended route would be to setup a deployment and use `hexo deploy` via the docker console to send the static files to be served by a CDN or something similar.
+A Docker image for the [Hexo](https://hexo.io/) static blogging platform. Supports custom themes, plugins, and configurations. Primarily intended for local development and rapid prototyping of blog posts, but can also be used in production — the recommended approach is to use `hexo deploy` to push the generated static files to a CDN or web server.
 
 ## Images
 
-- **GHCR:** `ghcr.io/fletchto99/hexo-dev-docker`
-- **Docker Hub:** `fletchto99/hexo-dev-blog`
+| Registry   | Image                                |
+| ---------- | ------------------------------------ |
+| **GHCR**   | `ghcr.io/fletchto99/hexo-dev-docker` |
+| **Docker Hub** | `fletchto99/hexo-dev-blog`       |
 
-## Usage
+## Quick start
 
+### Docker Compose (recommended)
+
+```yaml
+services:
+  blog:
+    image: ghcr.io/fletchto99/hexo-dev-docker
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./blog:/config
+    environment:
+      - HEXO_PLUGINS=hexo-wordcount hexo-deploy-rsync  # optional
 ```
-docker create \
-  --name=blog \
-  -v <path to data>:/config \
-  -e HEXO_PLUGINS=<hexo plugins> \
+
+```bash
+docker compose up
+```
+
+### Docker CLI
+
+```bash
+docker run -d \
+  --name blog \
+  -v ./blog:/config \
+  -e HEXO_PLUGINS="hexo-wordcount hexo-deploy-rsync" \
   -p 8080:8080 \
   ghcr.io/fletchto99/hexo-dev-docker
 ```
 
-## Parameters
-* `-p 8080` - The port to run the container on
-* `-v /config` - Configuration files and generated blog files
+## Configuration
 
-_Optional parameters:_
-* `-e HEXO_PLUGINS` - Any [hexo plugins](https://hexo.io/plugins/index.html) you wish the blog to have access to, space separated. For example `hexo-sliding-spoiler hexo-wordcount hexo-deploy-rsync`
+### Volumes
 
+| Mount      | Description                                  |
+| ---------- | -------------------------------------------- |
+| `/config`  | Blog source files, themes, and generated output |
 
-## Setting up the config directory
+### Environment variables
 
-The first time the container is started up, if the mounted config volume is empty the default contents will be automatically generated. In specific:
+| Variable        | Required | Description |
+| --------------- | -------- | ----------- |
+| `HEXO_PLUGINS`  | No       | Space-separated list of [Hexo plugins](https://hexo.io/plugins/) to install at startup (e.g. `hexo-wordcount hexo-deploy-rsync`) |
 
-* `config/_config.yml` - The hexo config file
-* `config/_posts` - The directory to save your markdown posts
-* `config/themes/` - Same as the themes directory when generating a hexo blog
-* `config/public` - The directory in which the static HTML files will be saved and served from (feel free to copy these to your production server to deploy)
+### Config directory structure
+
+On first startup, if the `/config` volume is empty, Hexo will initialize a new blog with the default scaffolding:
+
+```
+/config/
+├── _config.yml     # Hexo configuration
+├── source/
+│   └── _posts/     # Markdown blog posts
+├── themes/         # Hexo themes
+└── public/         # Generated static HTML (safe to deploy)
+```
 
 ## Advanced usage
 
-Below we explore some more advanced use cases such as deploying via `hexo deploy` or using custom themes which require some setup.
-
 ### Custom themes
 
-Some themes require setup which involves running commands like `npm install`. To do so follow these steps:
+1. Clone the theme into your `blog/themes/<theme-name>` directory on the host.
+2. Attach to the container console: `docker exec -it blog bash`
+3. Navigate to `/config/themes/<theme-name>` and run any required setup commands (e.g. `npm install`).
+4. Update `_config.yml` to use the new theme.
 
-1. Clone the theme into the `config/themes/<my theme>` directory.
-2. Attach to the docker's console and navigate to `/blog/themes/<my theme>`
-3. Run the required commands within the container to generate any required files
+### Deploying via rsync
 
-That should allow you to use the theme now! Be sure to setup any configurations within the theme as well
-
-### Deploying
-
-Currently this container supports blog deployment via rsync through the `hexo-deploy-rsync` plugin. Here's an example of the deploy section of a config. Note that the `deploy_key` is a private RSA key which will be used to deploy to the production server. It is saved at `config/deploy_key` which is then shared with the container through the mounted volume.
+This container includes `rsync` for deployment. Add the `hexo-deploy-rsync` plugin via the `HEXO_PLUGINS` environment variable, then configure the deploy section in `_config.yml`:
 
 ```yaml
 deploy:
   type: rsync
   host: <prod server>
   user: <user>
-  root: <path / to / blog / dir>
+  root: <path/to/blog/dir>
   port: 22
   delete: true
   args: "-e ssh -i /config/deploy_key <user>@<prod server>"
@@ -66,4 +93,8 @@ deploy:
   ignore_errors: false
 ```
 
-Now to deploy all I need to do is attach to the console and run `hexo deploy`
+Place your private key at `blog/deploy_key` on the host (mounted as `/config/deploy_key` in the container), then run:
+
+```bash
+docker exec -it blog hexo deploy
+```
