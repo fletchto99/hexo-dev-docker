@@ -46,10 +46,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: vars.DOCKERHUB_USERNAME != ''
+        if: secrets.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata
@@ -58,7 +58,7 @@ jobs:
         with:
           images: |
             ${{ env.GHCR_IMAGE }}
-            ${{ vars.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_IMAGE || '' }}
+            ${{ secrets.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_IMAGE || '' }}
           tags: |
             type=raw,value=${{ steps.get_version.outputs.VERSION }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
             type=raw,value=latest,enable={{is_default_branch}}
