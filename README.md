@@ -1,6 +1,17 @@
 # Hexo Dev Docker
 
+![Build Status](https://github.com/fletchto99/hexo-dev-docker/actions/workflows/publish_release.yml/badge.svg)
+![Docker Pulls](https://img.shields.io/docker/pulls/fletchto99/hexo-dev-blog)
+![GitHub License](https://img.shields.io/github/license/fletchto99/hexo-dev-docker)
+
 A Docker image for the [Hexo](https://hexo.io/) static blogging platform. Supports custom themes, plugins, and configurations. Primarily intended for local development and rapid prototyping of blog posts, but can also be used in production — the recommended approach is to use `hexo deploy` to push the generated static files to a CDN or web server.
+
+## Supported Architectures
+
+| Architecture | Available | Tag |
+| :----: | :----: | ---- |
+| x86-64 | ✅ | latest |
+| arm64 | ✅ | latest |
 
 ## Images
 
