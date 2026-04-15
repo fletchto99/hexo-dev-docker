@@ -28,4 +28,4 @@ fi
 # Start the server
 echo "Starting hexo server on port 8080"
 hexo clean --cwd /config
-hexo server --cwd /config -p 8080 --debug --draft
+exec hexo server --cwd /config -p 8080 --debug --draft
