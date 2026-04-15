@@ -5,8 +5,10 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends rsync && \
     rm -rf /var/lib/apt/lists/*
 
-# Install hexo-cli globally at a pinned version
-RUN npm install -g hexo-cli@4.3.2 && \
+# Install hexo-cli globally at the version pinned in package.json
+COPY package.json /tmp/package.json
+RUN npm install -g hexo-cli@$(node -p "require('/tmp/package.json').dependencies['hexo-cli']") && \
+    rm /tmp/package.json && \
     npm cache clean --force
 
 COPY setup /setup
