@@ -1,0 +1,2 @@
+ignored:
+  - DL3008 # apt-get pin versions: we rely on base image + weekly rebuilds for updates

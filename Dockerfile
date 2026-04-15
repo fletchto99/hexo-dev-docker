@@ -7,11 +7,14 @@ RUN apt-get update && \
 
 # Install hexo-cli at the version pinned in package-lock.json
 COPY package.json package-lock.json /opt/hexo-cli/
-RUN cd /opt/hexo-cli && npm ci && npm cache clean --force
+WORKDIR /opt/hexo-cli
+RUN npm ci && npm cache clean --force
 ENV PATH="/opt/hexo-cli/node_modules/.bin:$PATH"
+WORKDIR /
 
-# Create non-root user
-RUN groupadd -r hexo && useradd -r -g hexo -m hexo
+# Create non-root user and config directory
+RUN groupadd -r hexo && useradd -r -g hexo -m hexo && \
+    mkdir -p /config && chown hexo:hexo /config
 
 COPY setup /setup
 
