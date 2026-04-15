@@ -1,0 +1,57 @@
+name: Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  smoke-test:
+    name: Container Smoke Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Build image
+        run: docker build -t hexo-dev-docker:test .
+
+      - name: Start container with empty config
+        run: |
+          mkdir -p /tmp/hexo-config
+          docker run -d \
+            --name hexo-test \
+            -v /tmp/hexo-config:/config \
+            -p 8080:8080 \
+            hexo-dev-docker:test
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for hexo server to start..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/ > /dev/null 2>&1; then
+              echo "Server is ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server failed to start within 30s"
+          docker logs hexo-test
+          exit 1
+
+      - name: Verify blog was initialized
+        run: |
+          test -f /tmp/hexo-config/_config.yml
+          test -d /tmp/hexo-config/source/_posts
+
+      - name: Verify server responds
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
+          echo "HTTP status: $status"
+          [ "$status" = "200" ]
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f hexo-test
