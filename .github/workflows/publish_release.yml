@@ -7,6 +7,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: read
+
 env:
   GHCR_REGISTRY: ghcr.io
   GHCR_IMAGE: ghcr.io/${{ github.repository }}
