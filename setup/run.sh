@@ -19,10 +19,20 @@ fi
 if [[ -z "${HEXO_PLUGINS}" ]]; then
   echo "No additional plugins to install!"
 else
-  echo "Installing additional plugins \"${HEXO_PLUGINS}\""
+  # Append @latest to each plugin name so existing packages get updated
+  PLUGINS_LATEST=""
+  for plugin in ${HEXO_PLUGINS}; do
+    # Only append @latest if no version specifier is present
+    if [[ "$plugin" == *@* ]]; then
+      PLUGINS_LATEST="$PLUGINS_LATEST $plugin"
+    else
+      PLUGINS_LATEST="$PLUGINS_LATEST $plugin@latest"
+    fi
+  done
+  echo "Installing/updating plugins:${PLUGINS_LATEST}"
   # Word splitting is intentional here to pass multiple package names
   # shellcheck disable=SC2086
-  npm install -C /config ${HEXO_PLUGINS}
+  npm install -C /config ${PLUGINS_LATEST}
 fi
 
 # Start the server
