@@ -187,6 +187,7 @@ jobs:
 
       - name: Create manifest list and push (GHCR)
         run: |
+          # shellcheck disable=SC2046
           docker buildx imagetools create \
             $(jq -cr '.tags | map(select(startswith("${{ env.GHCR_REGISTRY }}")) | "-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             --annotation "index:org.opencontainers.image.title=${{ github.event.repository.name }}" \
@@ -199,6 +200,7 @@ jobs:
       - name: Create manifest list and push (Docker Hub)
         if: env.HAS_DOCKERHUB == 'true'
         run: |
+          # shellcheck disable=SC2046
           docker buildx imagetools create \
             $(jq -cr '.tags | map(select(startswith("${{ env.GHCR_REGISTRY }}") | not) | "-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             --annotation "index:org.opencontainers.image.title=${{ github.event.repository.name }}" \
