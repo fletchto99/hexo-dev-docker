@@ -21,8 +21,69 @@ jobs:
   smoke-test:
     uses: ./.github/workflows/smoke_test.yml
 
-  build-and-push:
+  build:
+    name: Build (${{ matrix.arch }})
     needs: smoke-test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
+    permissions:
+      contents: read
+      packages: write
+    env:
+      HAS_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          outputs: type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Create Multi-Arch Manifest
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,8 +101,12 @@ jobs:
         id: get_version
         run: echo "VERSION=$(node -p "require('./package.json').dependencies['hexo-cli']")" >> "$GITHUB_OUTPUT"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+      - name: Download digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
@@ -75,21 +140,72 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
 
-      - name: Build and push
-        id: push
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Resolve digests
+        id: digests
+        run: |
+          AMD64_DIGEST="sha256:$(ls /tmp/digests/digest-amd64/)"
+          ARM64_DIGEST="sha256:$(ls /tmp/digests/digest-arm64/)"
+          echo "amd64=$AMD64_DIGEST" >> "$GITHUB_OUTPUT"
+          echo "arm64=$ARM64_DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Tag per-platform images (GHCR)
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          docker buildx imagetools create --prefer-index=false \
+            -t ${{ env.GHCR_IMAGE }}:amd64-${VERSION} \
+            -t ${{ env.GHCR_IMAGE }}:amd64-latest \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.amd64 }}
+          docker buildx imagetools create --prefer-index=false \
+            -t ${{ env.GHCR_IMAGE }}:arm64-${VERSION} \
+            -t ${{ env.GHCR_IMAGE }}:arm64-latest \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.arm64 }}
+
+      - name: Tag per-platform images (Docker Hub)
+        if: env.HAS_DOCKERHUB == 'true'
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          docker buildx imagetools create --prefer-index=false \
+            -t ${{ env.DOCKERHUB_IMAGE }}:amd64-${VERSION} \
+            -t ${{ env.DOCKERHUB_IMAGE }}:amd64-latest \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.amd64 }}
+          docker buildx imagetools create --prefer-index=false \
+            -t ${{ env.DOCKERHUB_IMAGE }}:arm64-${VERSION} \
+            -t ${{ env.DOCKERHUB_IMAGE }}:arm64-latest \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.arm64 }}
+
+      - name: Create manifest list and push (GHCR)
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map(select(startswith("${{ env.GHCR_REGISTRY }}")) | "-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            --annotation "index:org.opencontainers.image.title=${{ github.event.repository.name }}" \
+            --annotation "index:org.opencontainers.image.description=${{ github.event.repository.description }}" \
+            --annotation "index:org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --annotation "index:org.opencontainers.image.vendor=${{ github.repository_owner }}" \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.amd64 }} \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.arm64 }}
+
+      - name: Create manifest list and push (Docker Hub)
+        if: env.HAS_DOCKERHUB == 'true'
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map(select(startswith("${{ env.GHCR_REGISTRY }}") | not) | "-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            --annotation "index:org.opencontainers.image.title=${{ github.event.repository.name }}" \
+            --annotation "index:org.opencontainers.image.description=${{ github.event.repository.description }}" \
+            --annotation "index:org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --annotation "index:org.opencontainers.image.vendor=${{ github.repository_owner }}" \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.amd64 }} \
+            ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.arm64 }}
+
+      - name: Inspect image and extract digest
+        id: inspect
+        run: |
+          digest=$(docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:latest --format '{{printf "%s" .Manifest.Digest}}')
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Manifest digest: $digest"
 
       - name: Attest GHCR image
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-name: ${{ env.GHCR_IMAGE }}
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.inspect.outputs.digest }}
           push-to-registry: true
