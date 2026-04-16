@@ -6,7 +6,6 @@ on:
     - cron: "0 6 * * 2" # Rebuild weekly on Tuesdays to pick up base image and dependency updates
   push:
     branches: [main]
-    tags: ["v*"]
 
 env:
   GHCR_REGISTRY: ghcr.io
@@ -15,7 +14,7 @@ env:
 
 concurrency:
   group: publish-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  cancel-in-progress: true
 
 jobs:
   smoke-test:
@@ -135,10 +134,6 @@ jobs:
           tags: |
             type=raw,value=${{ steps.get_version.outputs.VERSION }}
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value={{date 'YYYYMMDD'}}-{{sha}},enable={{is_default_branch}}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
 
       - name: Resolve digests
         id: digests
@@ -151,17 +146,11 @@ jobs:
       - name: Tag per-platform images (GHCR)
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          ANNOTATIONS=(
-            --annotation "org.opencontainers.image.title=${{ github.event.repository.name }}"
-            --annotation "org.opencontainers.image.description=${{ github.event.repository.description }}"
-            --annotation "org.opencontainers.image.source=https://github.com/${{ github.repository }}"
-            --annotation "org.opencontainers.image.vendor=${{ github.repository_owner }}"
-          )
-          docker buildx imagetools create --prefer-index=false "${ANNOTATIONS[@]}" \
+          docker buildx imagetools create --prefer-index=false \
             -t ${{ env.GHCR_IMAGE }}:amd64-${VERSION} \
             -t ${{ env.GHCR_IMAGE }}:amd64-latest \
             ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.amd64 }}
-          docker buildx imagetools create --prefer-index=false "${ANNOTATIONS[@]}" \
+          docker buildx imagetools create --prefer-index=false \
             -t ${{ env.GHCR_IMAGE }}:arm64-${VERSION} \
             -t ${{ env.GHCR_IMAGE }}:arm64-latest \
             ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.arm64 }}
@@ -170,17 +159,11 @@ jobs:
         if: env.HAS_DOCKERHUB == 'true'
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          ANNOTATIONS=(
-            --annotation "org.opencontainers.image.title=${{ github.event.repository.name }}"
-            --annotation "org.opencontainers.image.description=${{ github.event.repository.description }}"
-            --annotation "org.opencontainers.image.source=https://github.com/${{ github.repository }}"
-            --annotation "org.opencontainers.image.vendor=${{ github.repository_owner }}"
-          )
-          docker buildx imagetools create --prefer-index=false "${ANNOTATIONS[@]}" \
+          docker buildx imagetools create --prefer-index=false \
             -t ${{ env.DOCKERHUB_IMAGE }}:amd64-${VERSION} \
             -t ${{ env.DOCKERHUB_IMAGE }}:amd64-latest \
             ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.amd64 }}
-          docker buildx imagetools create --prefer-index=false "${ANNOTATIONS[@]}" \
+          docker buildx imagetools create --prefer-index=false \
             -t ${{ env.DOCKERHUB_IMAGE }}:arm64-${VERSION} \
             -t ${{ env.DOCKERHUB_IMAGE }}:arm64-latest \
             ${{ env.GHCR_IMAGE }}@${{ steps.digests.outputs.arm64 }}
