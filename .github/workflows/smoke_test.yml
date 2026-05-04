@@ -56,6 +56,11 @@ jobs:
           echo "HTTP status: $status"
           [ "$status" = "200" ]
 
+      - name: Verify graceful shutdown
+        run: |
+          timeout 5 docker stop hexo-test
+          echo "Container stopped gracefully"
+
       - name: Cleanup
         if: always()
         run: docker rm -f hexo-test
