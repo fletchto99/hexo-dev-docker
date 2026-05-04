@@ -2,7 +2,7 @@ FROM node:25-bookworm-slim
 
 # Install runtime dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends rsync openssh-client && \
+    apt-get install -y --no-install-recommends rsync openssh-client tini && \
     rm -rf /var/lib/apt/lists/*
 
 # Install hexo-cli at the version pinned in package-lock.json
@@ -19,4 +19,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/', r => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"
 
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/bin/bash", "/setup/run.sh"]
