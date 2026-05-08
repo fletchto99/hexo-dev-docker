@@ -1,4 +1,4 @@
-FROM node:25-bookworm-slim
+FROM node:26-bookworm-slim
 
 # Install runtime dependencies
 RUN apt-get update && \
